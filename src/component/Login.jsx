@@ -25,6 +25,8 @@ export default function Login({ onLoginSuccess, onSignUpClick }) {
       .eq("username", u)
       .single();
 
+    console.log("DEBUG login →", { username: u, data, dbError });
+
     setLoading(false);
 
     if (dbError || !data) {
