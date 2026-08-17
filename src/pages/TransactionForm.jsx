@@ -1,15 +1,6 @@
 import { useState } from "react";
-import { C } from "./theme";
+import { C } from "../components/theme";
 import { CATEGORIES } from "../lib/shared";
-
-const CATEGORY_ICONS = {
-  makan: "🍜",
-  jajan: "🍿",
-  transport: "🚌",
-  kuliah: "📚",
-  pribadi: "🧴",
-  lainnya: "✨",
-};
 
 const inputClass =
   "w-full mt-1.5 mb-3.5 px-3.5 py-3.5 sm:py-3 rounded-2xl text-[15px] sm:text-[14.5px] outline-none border-[1.5px] transition-shadow focus:ring-4 focus:ring-[#8B72C42A]";
@@ -34,7 +25,7 @@ export default function TransactionForm({
         ? formatRibuan(String(transaction.amount))
         : "",
     note: transaction?.note || "",
-    category: transaction?.category || "makan",
+    category: transaction?.category || "makanan",
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -209,7 +200,7 @@ export default function TransactionForm({
                 }}>
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
-                    {CATEGORY_ICONS[c.value] || "✨"} {c.label}
+                    {c.icon} {c.label}
                   </option>
                 ))}
               </select>
@@ -231,7 +222,7 @@ export default function TransactionForm({
           type="text"
           value={form.note}
           onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
-          placeholder={isOut ? "Makan siang di kantin" : "Kiriman dari Mamah"}
+          placeholder={isOut ? "Belanja bulanan" : "Transfer dari gaji"}
           className={`${inputClass} mb-2`}
           style={{
             background: "#463F5C08",

@@ -21,7 +21,7 @@ export default function Login({ onLoginSuccess, onSignUpClick }) {
 
     const { data, error: dbError } = await supabase
       .from("users")
-      .select("id, username, password, role, linked_child_id")
+      .select("id, username, password, nama_lengkap")
       .eq("username", u)
       .single();
 
@@ -40,8 +40,7 @@ export default function Login({ onLoginSuccess, onSignUpClick }) {
     const loggedInUser = {
       id: data.id,
       username: data.username,
-      role: data.role,
-      linked_child_id: data.linked_child_id,
+      nama_lengkap: data.nama_lengkap,
     };
 
     // "Ingat saya" checked -> persist across browser restarts (localStorage).
@@ -89,19 +88,19 @@ export default function Login({ onLoginSuccess, onSignUpClick }) {
             fontFamily: "'Fraunces', serif",
             color: "#FFFFFF",
             opacity: 0.92,
-            fontSize: "clamp(88px, 26vw, 168px)",
+            fontSize: "clamp(90px, 26vw, 50px)",
             lineHeight: 0.82,
             letterSpacing: "-0.03em",
             marginLeft: "-0.04em",
             textShadow: "0 10px 30px rgba(70,63,92,0.18)",
           }}
           className="font-semibold select-none whitespace-nowrap px-1">
-          SAKU
+          SALDOKU
         </p>
         <p
           className="relative text-[13px] sm:text-[14px] px-6 sm:px-8 lg:px-12 mb-6 sm:mb-8 lg:mb-10 lg:max-w-xs"
           style={{ color: "#FFFFFF", opacity: 0.9 }}>
-          Uang saku bulan ini, ke mana perginya? Catat sekarang, biar tau nanti.
+          Uang bulan ini, ke mana perginya? Catat sekarang, biar tau nanti.
         </p>
 
         <FloatingDoodles />
@@ -249,8 +248,8 @@ export default function Login({ onLoginSuccess, onSignUpClick }) {
               style={{ background: "#8B72C414", color: C.lavender }}>
               <span className="flex-shrink-0">🔒</span>
               <span>
-                Password diatur oleh orang tua / admin. Hubungi mereka untuk
-                reset ya.
+                Lupa password? Minta pasangan kamu buat reset lewat menu Akun di
+                dashboard dia ya.
               </span>
             </div>
           )}

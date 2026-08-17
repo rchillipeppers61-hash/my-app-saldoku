@@ -1,8 +1,168 @@
 import { useState } from "react";
-import { C } from "./theme";
+import { C } from "../components/theme";
+import Card from "../components/Card";
 import { rupiah } from "../lib/shared";
 
-export default function SavingsGoalItem({
+// SavingsGoalItem digabung di bawah (bukan file terpisah lagi) karena
+// cuma dipakai di sini. Tetep jadi function sendiri (bukan didefinisi
+// ulang di dalam .map()) biar state per-item (mode edit/setor) gak
+// ke-reset tiap Nabung re-render.
+export default function Nabung({
+  loading,
+  availableToAllocate,
+  goals,
+  showAddGoal,
+  setShowAddGoal,
+  goalTitle,
+  setGoalTitle,
+  goalAmount,
+  setGoalAmount,
+  goalSaving,
+  goalError,
+  setGoalError,
+  goalToast,
+  onAddGoal,
+  onEditGoal,
+  onDeleteGoal,
+  onDepositGoal,
+  onWithdrawGoal,
+}) {
+  if (loading) {
+    return (
+      <p
+        className="text-[13px] text-center py-10"
+        style={{ color: C.inkFaint }}>
+        Memuat...
+      </p>
+    );
+  }
+
+  return (
+    <div className="max-w-xl mx-auto">
+      <Card>
+        <div
+          className="rounded-2xl p-4 mb-4"
+          style={{ background: "#8B72C41A" }}>
+          <p
+            className="text-[11px] uppercase tracking-[0.1em] font-semibold"
+            style={{ color: C.lavender }}>
+            Bisa Disisihkan
+          </p>
+          <p
+            className="text-[20px] font-semibold mt-0.5"
+            style={{ fontFamily: "'Fraunces', serif", color: C.ink }}>
+            {rupiah(availableToAllocate)}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between mb-3">
+          <p
+            className="text-[11px] uppercase tracking-[0.1em] font-semibold"
+            style={{ color: C.inkFaint }}>
+            Target Nabung
+          </p>
+          {goalToast ? (
+            <span
+              className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+              style={{ background: "#8FD8BE33", color: C.mintDeep }}>
+              {goalToast}
+            </span>
+          ) : (
+            <button
+              onClick={() => {
+                setShowAddGoal((v) => !v);
+                setGoalError("");
+              }}
+              className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+              style={{ background: "#8B72C41A", color: C.lavender }}>
+              {showAddGoal ? "Batal" : "+ Tambah"}
+            </button>
+          )}
+        </div>
+
+        {showAddGoal && (
+          <div className="mb-3.5 space-y-2">
+            <input
+              type="text"
+              value={goalTitle}
+              onChange={(e) => setGoalTitle(e.target.value)}
+              placeholder="Contoh: Liburan akhir tahun"
+              className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none border-[1.5px]"
+              style={{
+                background: "#463F5C08",
+                color: C.ink,
+                borderColor: "#463F5C1F",
+              }}
+            />
+            <input
+              type="number"
+              value={goalAmount}
+              onChange={(e) => setGoalAmount(e.target.value)}
+              placeholder="Target (Rp) contoh: 5000000"
+              className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none border-[1.5px]"
+              style={{
+                background: "#463F5C08",
+                color: C.ink,
+                borderColor: "#463F5C1F",
+              }}
+            />
+            {goalError && (
+              <div
+                className="flex items-center gap-2 rounded-xl px-3 py-2 text-[11.5px] font-medium"
+                style={{ background: "#F4A6B71F", color: C.roseDeep }}>
+                ⚠️ {goalError}
+              </div>
+            )}
+            <button
+              onClick={onAddGoal}
+              disabled={goalSaving}
+              className="w-full py-2.5 rounded-xl font-bold text-[13px] disabled:opacity-50"
+              style={{
+                background: `linear-gradient(135deg, ${C.lavender}, ${C.skyDeep})`,
+                color: "#FFFFFF",
+              }}>
+              {goalSaving ? "Menyimpan..." : "Simpan Target"}
+            </button>
+          </div>
+        )}
+
+        {goalError && !showAddGoal && (
+          <div
+            className="flex items-center gap-2 rounded-xl px-3 py-2 mb-3 text-[11.5px] font-medium"
+            style={{ background: "#F4A6B71F", color: C.roseDeep }}>
+            ⚠️ {goalError}
+          </div>
+        )}
+
+        {goals.length === 0 && !showAddGoal ? (
+          <p className="text-[12.5px]" style={{ color: C.inkFaint }}>
+            Belum ada target nabung. Yuk bikin satu!
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {goals.map((g) => (
+              <SavingsGoalItem
+                key={g.id}
+                goal={g}
+                editable
+                onDelete={onDeleteGoal}
+                onEdit={onEditGoal}
+                onDeposit={onDepositGoal}
+                onWithdraw={onWithdrawGoal}
+                availableToAllocate={availableToAllocate}
+              />
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+// Komponen 1 item target nabung (progress bar, mode edit, mode
+// setor/tarik). Cuma dipakai Nabung di atas, makanya digabung 1 file
+// dan gak di-export.
+function SavingsGoalItem({
   goal,
   onDelete,
   onEdit,

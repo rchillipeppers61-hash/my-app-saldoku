@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { C } from "./component/theme";
-import Login from "./component/Login";
-import SignUp from "./component/SignUp";
-import ChildDashboard from "./component/ChildDashboard";
-import ParentDashboard from "./component/ParentDashboard";
+import { C } from "./components/theme";
+import Login from "./components/Login";
+import SignUp from "./components/SignUp";
+import HomePage from "./pages/Homepage";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -72,9 +71,7 @@ export default function App() {
     );
   }
 
-  if (user.role === "orang_tua") {
-    return <ParentDashboard user={user} onLogout={handleLogout} />;
-  }
-
-  return <ChildDashboard user={user} onLogout={handleLogout} />;
+  // Akun Utama & Akun Pendamping sekarang setara -- satu HomePage yang
+  // sama, dua-duanya bisa catat/edit/hapus transaksi & kelola target.
+  return <HomePage user={user} onLogout={handleLogout} />;
 }
