@@ -60,6 +60,13 @@ export const CATEGORIES = [
     solid: "#8B72C4",
   },
   {
+    value: "tabungan",
+    label: "Tabungan",
+    icon: "🐷",
+    tint: "#3E7CB82A",
+    solid: "#2E5F8F",
+  },
+  {
     value: "lainnya",
     label: "Lainnya",
     icon: "✨",

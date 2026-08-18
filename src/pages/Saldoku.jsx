@@ -280,8 +280,15 @@ export default function Saldoku({
   }, [transactions]);
 
   const categoryRows = useMemo(() => {
+    // Kategori "tabungan" (setor/tarik goal) sengaja gak dihitung di
+    // sini — itu bukan pengeluaran beneran, cuma duit yang dipindahin
+    // ke pos tabungan. Kalau ikut kehitung, breakdown bisa salah baca
+    // (nabung gede kelihatan kayak boros, padahal sengaja disisihkan).
     const monthTx = transactions.filter(
-      (t) => t.type === "out" && t.date.slice(0, 7) === currentMonthKey,
+      (t) =>
+        t.type === "out" &&
+        t.date.slice(0, 7) === currentMonthKey &&
+        t.category !== "tabungan",
     );
     const byCategory = {};
     monthTx.forEach((t) => {

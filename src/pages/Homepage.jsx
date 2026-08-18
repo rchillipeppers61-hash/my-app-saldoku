@@ -263,27 +263,40 @@ export default function HomePage({ user, onLogout }) {
     if (!amount || amount <= 0) {
       return { ok: false, error: "Jumlah harus lebih dari 0." };
     }
-    const totalSaved = goals.reduce(
-      (s, g) => s + Number(g.saved_amount || 0),
-      0,
-    );
-    const available = saldo - totalSaved;
-    if (amount > available) {
+    if (amount > saldo) {
       return {
         ok: false,
-        error: `Saldo yang bisa disisihkan cuma ${rupiah(available)}.`,
+        error: `Saldo yang bisa disisihkan cuma ${rupiah(saldo)}.`,
       };
     }
     const goal = goals.find((g) => g.id === id);
     if (!goal) return { ok: false, error: "Target tidak ditemukan." };
     const newSaved = Number(goal.saved_amount || 0) + amount;
-    const { error } = await supabase
+
+    // Update saved_amount dulu (sebelum insert transaksi) — kalau
+    // insert transaksi di bawah gagal, minimal saved_amount di goal-nya
+    // tetap konsisten dan gampang di-retry manual, ketimbang kejadian
+    // transaksi kecatet tapi saved_amount gak ke-update.
+    const { error: goalError } = await supabase
       .from("savings_goals")
       .update({ saved_amount: newSaved })
       .eq("id", id)
       .in("owner_id", pairIds);
-    if (error) return { ok: false, error: "Gagal menyimpan, coba lagi." };
-    await fetchGoals(pairIds);
+    if (goalError) return { ok: false, error: "Gagal menyimpan, coba lagi." };
+
+    // Setor ke goal dicatat sebagai transaksi "Keluar" kategori
+    // tabungan — biar saldo beneran kepotong (bukan cuma alokasi
+    // virtual) dan riwayatnya kelihatan di Catatan Transaksi.
+    await supabase.from("transactions").insert({
+      owner_id: user.id,
+      type: "out",
+      amount,
+      note: `Setor ke ${goal.title}`,
+      category: "tabungan",
+      date: todayISO(),
+    });
+
+    await Promise.all([fetchGoals(pairIds), fetchTransactions(pairIds)]);
     return { ok: true };
   }
 
@@ -301,13 +314,26 @@ export default function HomePage({ user, onLogout }) {
       };
     }
     const newSaved = currentSaved - amount;
-    const { error } = await supabase
+
+    const { error: goalError } = await supabase
       .from("savings_goals")
       .update({ saved_amount: newSaved })
       .eq("id", id)
       .in("owner_id", pairIds);
-    if (error) return { ok: false, error: "Gagal menyimpan, coba lagi." };
-    await fetchGoals(pairIds);
+    if (goalError) return { ok: false, error: "Gagal menyimpan, coba lagi." };
+
+    // Tarik dari goal balikin duitnya ke saldo lewat transaksi "Masuk"
+    // kategori tabungan juga, biar simetris sama pas setor.
+    await supabase.from("transactions").insert({
+      owner_id: user.id,
+      type: "in",
+      amount,
+      note: `Tarik dari ${goal.title}`,
+      category: "tabungan",
+      date: todayISO(),
+    });
+
+    await Promise.all([fetchGoals(pairIds), fetchTransactions(pairIds)]);
     return { ok: true };
   }
 
@@ -326,11 +352,12 @@ export default function HomePage({ user, onLogout }) {
   const avgOutPerDay = Math.round(
     totalOutThisMonth / daysBetween(`${currentMonthKey}-01`, todayISO()),
   );
-  const totalSavedInGoals = goals.reduce(
-    (s, g) => s + Number(g.saved_amount || 0),
-    0,
-  );
-  const availableToAllocate = saldo - totalSavedInGoals;
+  // Sebelumnya availableToAllocate = saldo - totalSavedInGoals (Model
+  // alokasi virtual, saldo gak pernah berkurang pas setor). Sekarang
+  // setor ke goal bikin transaksi "out" beneran (lihat depositToGoal),
+  // jadi saldo udah otomatis kepotong dan availableToAllocate tinggal
+  // ngikutin saldo langsung — gak double-hitung lagi.
+  const availableToAllocate = saldo;
 
   const hasTransactionToday = transactions.some((t) => t.date === todayISO());
   const showReminder = !loading && !hasTransactionToday && !reminderDismissed;
@@ -353,7 +380,12 @@ export default function HomePage({ user, onLogout }) {
   const monthlyTopCategory = useMemo(() => {
     const byCategory = {};
     transactions
-      .filter((t) => t.type === "out" && t.date.slice(0, 7) === currentMonthKey)
+      .filter(
+        (t) =>
+          t.type === "out" &&
+          t.date.slice(0, 7) === currentMonthKey &&
+          t.category !== "tabungan",
+      )
       .forEach((t) => {
         byCategory[t.category] =
           (byCategory[t.category] || 0) + Number(t.amount);
