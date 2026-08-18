@@ -406,37 +406,11 @@ export default function HomePage({ user, onLogout }) {
 
       <div className="relative max-w-md sm:max-w-xl lg:max-w-5xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 pb-32 lg:pb-16">
         <div className="flex items-center justify-between mb-5 sm:mb-8">
-          {activeTab === "home" ? (
-            <p
-              style={{ fontFamily: "'Fraunces', serif", color: C.ink }}
-              className="text-[19px] sm:text-[22px] font-semibold">
-              My Wallet
-            </p>
-          ) : (
-            <div className="flex items-center gap-3 min-w-0">
-              <div
-                className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center font-semibold text-[14px] sm:text-[15px] flex-shrink-0"
-                style={{
-                  background: `linear-gradient(135deg, ${C.lavender}, ${C.skyDeep})`,
-                  color: "#FFFFFF",
-                  fontFamily: "'Fraunces', serif",
-                }}>
-                {getInitials(displayName)}
-              </div>
-              <div className="min-w-0">
-                <p
-                  className="text-[11px] tracking-[0.2em] uppercase font-semibold"
-                  style={{ color: C.lavender }}>
-                  My Wallet
-                </p>
-                <h1
-                  style={{ fontFamily: "'Fraunces', serif" }}
-                  className="text-[19px] sm:text-[25px] font-semibold leading-tight truncate">
-                  Halo, {displayName} 👋
-                </h1>
-              </div>
-            </div>
-          )}
+          <p
+            style={{ fontFamily: "'Fraunces', serif", color: C.ink }}
+            className="text-[19px] sm:text-[22px] font-semibold">
+            Saldoku
+          </p>
           {/* Navbar dipisah di Navbar.jsx — versi desktop di sini,
               versi mobile ada di bawah dekat footer. */}
           <DesktopNav
@@ -504,7 +478,7 @@ export default function HomePage({ user, onLogout }) {
                       </p>
                       <p
                         style={{
-                          fontFamily: "'Fraunces', serif",
+                          fontFamily: "'Inter', serif",
                           color: "#FFFFFF",
                         }}
                         className="text-[24px] sm:text-[27px] font-semibold leading-none mt-1">

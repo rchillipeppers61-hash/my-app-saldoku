@@ -11,6 +11,120 @@ import {
   monthLabel,
 } from "../lib/shared";
 
+// Format tanggal ringkas khusus buat kolom tabel (formatDay yang lama
+// terlalu panjang buat cell tabel karena isinya nama hari lengkap).
+function shortDate(d) {
+  return new Date(d).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+// Preview tabel transaksi — dipisah jadi komponen sendiri karena
+// dipakai khusus buat mode "Tabel" di daftar transaksi. Ini BUKAN
+// hasil export, cuma preview cepat di layar (kolomnya emang senada
+// sama isi file Excel biar orang gampang connect keduanya).
+function TransactionsTable({ transactions, onEditTransaction }) {
+  // Preview tabel cuma buat pengeluaran — pemasukan sengaja gak
+  // ditampilin di sini sesuai permintaan, jadi difilter duluan sebelum
+  // di-sort. Kolom "Tipe" juga dibuang karena semua baris pasti
+  // "Keluar", jadi percuma ditampilin berulang.
+  const sorted = useMemo(
+    () =>
+      transactions
+        .filter((t) => t.type === "out")
+        .sort((a, b) => (a.date < b.date ? 1 : -1)),
+    [transactions],
+  );
+
+  if (sorted.length === 0) {
+    return (
+      <div className="py-10 sm:py-12 text-center">
+        <div
+          className="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-full flex items-center justify-center text-[26px] sm:text-[28px] mb-3"
+          style={{ background: "#8B72C41A" }}>
+          🔍
+        </div>
+        <p
+          className="text-[13.5px] sm:text-[14px] font-medium"
+          style={{ color: C.ink }}>
+          Tidak ada pengeluaran di periode ini
+        </p>
+        <p
+          className="text-[12px] sm:text-[12.5px] mt-1"
+          style={{ color: C.inkFaint }}>
+          Coba pilih periode lain di dropdown atas.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    // overflow-x-auto sengaja dipakai di sini (bukan dihindari) karena
+    // ini tabel data — di layar sempit lebih enak discroll horizontal
+    // ketimbang kolom dipepetin sampai gak kebaca.
+    <div
+      className="overflow-x-auto -mx-1 px-1 rounded-2xl"
+      style={{ border: "1px solid #463F5C14" }}>
+      <table className="w-full border-collapse min-w-[480px]">
+        <thead>
+          <tr>
+            {["Tanggal", "Kategori", "Catatan", "Jumlah"].map((h, i) => (
+              <th
+                key={h}
+                className={`sticky top-0 z-10 text-[10.5px] sm:text-[11px] uppercase tracking-wide font-bold py-2.5 px-3 whitespace-nowrap ${
+                  i === 3 ? "text-right" : "text-left"
+                }`}
+                style={{ background: "#8B72C41F", color: C.lavender }}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((t) => {
+            const meta = categoryMeta(t.category);
+            return (
+              <tr
+                key={t.id}
+                onClick={() => onEditTransaction(t)}
+                className="cursor-pointer transition-colors hover:bg-[#463F5C08] active:bg-[#463F5C10]"
+                style={{ borderTop: "1px solid #463F5C12" }}>
+                <td
+                  className="py-2.5 sm:py-3 px-3 text-[12px] sm:text-[12.5px] whitespace-nowrap"
+                  style={{ color: C.inkSoft }}>
+                  {shortDate(t.date)}
+                </td>
+                <td
+                  className="py-2.5 sm:py-3 px-3 text-[12px] sm:text-[12.5px] whitespace-nowrap"
+                  style={{ color: C.ink }}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="text-[13px] leading-none">
+                      {meta.icon}
+                    </span>
+                    {categoryLabel(t.category)}
+                  </span>
+                </td>
+                <td
+                  className="py-2.5 sm:py-3 px-3 text-[12px] sm:text-[12.5px] max-w-[220px] truncate"
+                  style={{ color: C.ink }}>
+                  {t.note || "-"}
+                </td>
+                <td
+                  className="py-2.5 sm:py-3 px-3 text-[12.5px] sm:text-[13px] font-bold text-right whitespace-nowrap"
+                  style={{ color: C.ink }}>
+                  -{rupiah(t.amount)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // Tab "Saldoku" — buku kerja: catatan transaksi lengkap + export.
 // Modal tambah/edit transaksi (TransactionForm) dipegang bareng sama
 // tab Homepage, jadi state buka/tutupnya dinaikin ke HomePage.jsx dan
@@ -30,6 +144,12 @@ export default function Saldoku({
   onEditTransaction,
 }) {
   const [period, setPeriod] = useState("week");
+
+  // Mode tampilan daftar transaksi: "daily" (list dikelompokkan per
+  // hari, kayak sebelumnya) atau "table" (preview tabel rapi, kolomnya
+  // senada sama isi file export tapi ini cuma buat dilihat di layar,
+  // bukan hasil download).
+  const [viewMode, setViewMode] = useState("daily");
 
   const [showLogPanel, setShowLogPanel] = useState(false);
 
@@ -270,7 +390,7 @@ export default function Saldoku({
               </p>
               <p
                 style={{
-                  fontFamily: "'Fraunces', serif",
+                  fontFamily: "'Inter', serif",
                   color: "#FFFFFF",
                 }}
                 className="mt-1 text-[26px] sm:text-[32px] lg:text-[30px] font-semibold leading-none">
@@ -474,6 +594,39 @@ export default function Saldoku({
                 </button>
               </div>
             </div>
+
+            {/* Toggle mode tampilan: "Harian" (list dikelompokkan per
+                tanggal, kayak sebelumnya) vs "Tabel" (preview kolom
+                rapi di layar — bukan hasil download, cuma buat lihat
+                cepat). Disembunyikan kalau memang belum ada transaksi
+                sama sekali biar gak ganggu empty state. */}
+            {transactions.length > 0 && (
+              <div
+                className="flex rounded-2xl p-1 mb-3 gap-1"
+                style={{ background: "#463F5C0d" }}>
+                <button
+                  onClick={() => setViewMode("daily")}
+                  className="flex-1 py-2 rounded-xl text-[11.5px] sm:text-[12px] font-bold transition-colors"
+                  style={{
+                    background:
+                      viewMode === "daily" ? C.lavender : "transparent",
+                    color: viewMode === "daily" ? "#FFFFFF" : C.inkSoft,
+                  }}>
+                  📅 Harian
+                </button>
+                <button
+                  onClick={() => setViewMode("table")}
+                  className="flex-1 py-2 rounded-xl text-[11.5px] sm:text-[12px] font-bold transition-colors"
+                  style={{
+                    background:
+                      viewMode === "table" ? C.lavender : "transparent",
+                    color: viewMode === "table" ? "#FFFFFF" : C.inkSoft,
+                  }}>
+                  📋 Tabel Pengeluaran
+                </button>
+              </div>
+            )}
+
             <div className="mt-1 max-h-[26rem] lg:max-h-none lg:flex-1 overflow-y-auto pr-1">
               {transactions.length === 0 && (
                 <div className="py-10 sm:py-12 text-center">
@@ -494,113 +647,125 @@ export default function Saldoku({
                   </p>
                 </div>
               )}
-              {transactions.length > 0 && byDay.length === 0 && (
-                <div className="py-10 sm:py-12 text-center">
-                  <div
-                    className="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-full flex items-center justify-center text-[26px] sm:text-[28px] mb-3"
-                    style={{ background: "#8B72C41A" }}>
-                    🔍
-                  </div>
-                  <p
-                    className="text-[13.5px] sm:text-[14px] font-medium"
-                    style={{ color: C.ink }}>
-                    Tidak ada transaksi di periode ini
-                  </p>
-                  <p
-                    className="text-[12px] sm:text-[12.5px] mt-1"
-                    style={{ color: C.inkFaint }}>
-                    Coba pilih periode lain di dropdown atas.
-                  </p>
-                </div>
+
+              {transactions.length > 0 && viewMode === "table" && (
+                <TransactionsTable
+                  transactions={displayTransactions}
+                  onEditTransaction={onEditTransaction}
+                />
               )}
-              {byDay.map(([date, txs]) => {
-                const dayOut = txs
-                  .filter((t) => t.type === "out")
-                  .reduce((s, t) => s + t.amount, 0);
-                return (
-                  <div
-                    key={date}
-                    className="py-3 border-b last:border-0"
-                    style={{ borderColor: "#463F5C12" }}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span
-                        className="inline-flex items-center px-3 py-1 rounded-full text-[11px] sm:text-[12px] font-semibold"
-                        style={{
-                          background: "#8B72C41A",
-                          color: C.lavender,
-                        }}>
-                        {formatDay(date)}
-                      </span>
-                      {dayOut > 0 && (
-                        <span
-                          className="text-[11px] sm:text-[12px] font-semibold px-2.5 py-1 rounded-full"
-                          style={{
-                            background: "#F4A6B71F",
-                            color: C.roseDeep,
-                          }}>
-                          -{rupiah(dayOut)}
-                        </span>
-                      )}
+
+              {transactions.length > 0 &&
+                viewMode === "daily" &&
+                byDay.length === 0 && (
+                  <div className="py-10 sm:py-12 text-center">
+                    <div
+                      className="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-full flex items-center justify-center text-[26px] sm:text-[28px] mb-3"
+                      style={{ background: "#8B72C41A" }}>
+                      🔍
                     </div>
-                    <div className="space-y-1">
-                      {txs.map((t) => {
-                        const meta =
-                          t.type === "in"
-                            ? { icon: "💰", bg: "#3F9E7C22" }
-                            : categoryMeta(t.category);
-                        return (
-                          <button
-                            key={t.id}
-                            onClick={() => onEditTransaction(t)}
-                            className="w-full flex items-center justify-between gap-2 py-1.5 px-1.5 -mx-1.5 rounded-xl text-left transition-colors hover:bg-[#463F5C08] active:bg-[#463F5C10]">
-                            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                              <div
-                                className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center text-[16px] sm:text-[18px] flex-shrink-0"
-                                style={{
-                                  background: meta.bg || meta.tint,
-                                }}>
-                                {meta.icon}
-                              </div>
-                              <div className="min-w-0">
-                                <p
-                                  className="text-[13.5px] sm:text-[14.5px] font-medium truncate"
-                                  style={{ color: C.ink }}>
-                                  {t.note ||
-                                    (t.type === "in"
-                                      ? "Pemasukan"
-                                      : categoryLabel(t.category))}
-                                </p>
-                                <p
-                                  className="text-[11px] sm:text-[11.5px]"
-                                  style={{ color: C.inkFaint }}>
-                                  {t.type === "in"
-                                    ? "Pemasukan"
-                                    : categoryLabel(t.category)}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                              <p
-                                className="text-[14px] sm:text-[15px] font-bold"
-                                style={{
-                                  color: t.type === "in" ? C.mintDeep : C.ink,
-                                }}>
-                                {t.type === "in" ? "+" : "-"}
-                                {rupiah(t.amount)}
-                              </p>
-                              <span
-                                className="text-[11px]"
-                                style={{ color: C.inkFaint }}>
-                                ✏️
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <p
+                      className="text-[13.5px] sm:text-[14px] font-medium"
+                      style={{ color: C.ink }}>
+                      Tidak ada transaksi di periode ini
+                    </p>
+                    <p
+                      className="text-[12px] sm:text-[12.5px] mt-1"
+                      style={{ color: C.inkFaint }}>
+                      Coba pilih periode lain di dropdown atas.
+                    </p>
                   </div>
-                );
-              })}
+                )}
+
+              {viewMode === "daily" &&
+                byDay.map(([date, txs]) => {
+                  const dayOut = txs
+                    .filter((t) => t.type === "out")
+                    .reduce((s, t) => s + t.amount, 0);
+                  return (
+                    <div
+                      key={date}
+                      className="py-3 border-b last:border-0"
+                      style={{ borderColor: "#463F5C12" }}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span
+                          className="inline-flex items-center px-3 py-1 rounded-full text-[11px] sm:text-[12px] font-semibold"
+                          style={{
+                            background: "#8B72C41A",
+                            color: C.lavender,
+                          }}>
+                          {formatDay(date)}
+                        </span>
+                        {dayOut > 0 && (
+                          <span
+                            className="text-[11px] sm:text-[12px] font-semibold px-2.5 py-1 rounded-full"
+                            style={{
+                              background: "#F4A6B71F",
+                              color: C.roseDeep,
+                            }}>
+                            -{rupiah(dayOut)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        {txs.map((t) => {
+                          const meta =
+                            t.type === "in"
+                              ? { icon: "💰", bg: "#3F9E7C22" }
+                              : categoryMeta(t.category);
+                          return (
+                            <button
+                              key={t.id}
+                              onClick={() => onEditTransaction(t)}
+                              className="w-full flex items-center justify-between gap-2 py-1.5 px-1.5 -mx-1.5 rounded-xl text-left transition-colors hover:bg-[#463F5C08] active:bg-[#463F5C10]">
+                              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                                <div
+                                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center text-[16px] sm:text-[18px] flex-shrink-0"
+                                  style={{
+                                    background: meta.bg || meta.tint,
+                                  }}>
+                                  {meta.icon}
+                                </div>
+                                <div className="min-w-0">
+                                  <p
+                                    className="text-[13.5px] sm:text-[14.5px] font-medium truncate"
+                                    style={{ color: C.ink }}>
+                                    {t.note ||
+                                      (t.type === "in"
+                                        ? "Pemasukan"
+                                        : categoryLabel(t.category))}
+                                  </p>
+                                  <p
+                                    className="text-[11px] sm:text-[11.5px]"
+                                    style={{ color: C.inkFaint }}>
+                                    {t.type === "in"
+                                      ? "Pemasukan"
+                                      : categoryLabel(t.category)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <p
+                                  className="text-[14px] sm:text-[15px] font-bold"
+                                  style={{
+                                    color: t.type === "in" ? C.mintDeep : C.ink,
+                                  }}>
+                                  {t.type === "in" ? "+" : "-"}
+                                  {rupiah(t.amount)}
+                                </p>
+                                <span
+                                  className="text-[11px]"
+                                  style={{ color: C.inkFaint }}>
+                                  ✏️
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           </Card>
 
