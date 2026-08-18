@@ -98,9 +98,9 @@ export default function Login({ onLoginSuccess, onSignUpClick }) {
           SALDOKU
         </p>
         <p
-          className="relative text-[13px] sm:text-[14px] px-6 sm:px-8 lg:px-12 mb-6 sm:mb-8 lg:mb-10 lg:max-w-xs"
+          className="relative text-[16px] sm:text-[14px] px-6 sm:px-8 lg:px-12 mb-6 sm:mb-8 lg:mb-10 lg:max-w-xs"
           style={{ color: "#FFFFFF", opacity: 0.9 }}>
-          Uang bulan ini, ke mana perginya? Catat sekarang, biar tau nanti.
+          Management Pengeluaran Keuangan
         </p>
 
         <FloatingDoodles />

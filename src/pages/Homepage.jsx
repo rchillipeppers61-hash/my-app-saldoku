@@ -350,13 +350,10 @@ export default function HomePage({ user, onLogout }) {
     return "Selamat malam";
   }, []);
 
-  const weeklyTopCategory = useMemo(() => {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 6);
-    const cutoffISO = cutoff.toISOString().slice(0, 10);
+  const monthlyTopCategory = useMemo(() => {
     const byCategory = {};
     transactions
-      .filter((t) => t.type === "out" && t.date >= cutoffISO)
+      .filter((t) => t.type === "out" && t.date.slice(0, 7) === currentMonthKey)
       .forEach((t) => {
         byCategory[t.category] =
           (byCategory[t.category] || 0) + Number(t.amount);
@@ -364,7 +361,7 @@ export default function HomePage({ user, onLogout }) {
     const entries = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
     if (entries.length === 0) return null;
     return { category: entries[0][0], amount: entries[0][1] };
-  }, [transactions]);
+  }, [transactions, currentMonthKey]);
 
   const nearestGoal = useMemo(() => {
     const inProgress = goals.filter(
@@ -404,13 +401,8 @@ export default function HomePage({ user, onLogout }) {
         />
       </div>
 
-      <div className="relative max-w-md sm:max-w-xl lg:max-w-5xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 pb-32 lg:pb-16">
-        <div className="flex items-center justify-between mb-5 sm:mb-8">
-          <p
-            style={{ fontFamily: "'Fraunces', serif", color: C.ink }}
-            className="text-[19px] sm:text-[22px] font-semibold">
-            Saldoku
-          </p>
+      <div className="relative max-w-md sm:max-w-xl lg:max-w-5xl mx-auto px-4 sm:px-6 pt-3 sm:pt-5 pb-32 lg:pb-16">
+        <div className="flex items-center justify-end mb-2.5 sm:mb-4">
           {/* Navbar dipisah di Navbar.jsx — versi desktop di sini,
               versi mobile ada di bawah dekat footer. */}
           <DesktopNav
@@ -546,9 +538,9 @@ export default function HomePage({ user, onLogout }) {
               </div>
 
               {/* Insight card — 1 ringkasan kecil (kategori boros
-                  minggu ini / progress goal terdekat), gantiin posisi
+                  bulan ini / progress goal terdekat), gantiin posisi
                   list transaksi panjang yang kembar sama Saldoku. */}
-              {(weeklyTopCategory || nearestGoal) && (
+              {(monthlyTopCategory || nearestGoal) && (
                 <Card className="mb-4" accent={C.amber}>
                   <div className="flex items-center justify-between mb-3">
                     <h3
@@ -559,30 +551,30 @@ export default function HomePage({ user, onLogout }) {
                     <span className="text-[18px]">💡</span>
                   </div>
 
-                  {weeklyTopCategory && (
+                  {monthlyTopCategory && (
                     <div className="flex items-center gap-3 mb-3">
                       <div
                         className="w-10 h-10 rounded-2xl flex items-center justify-center text-[18px] flex-shrink-0"
                         style={{
-                          background: categoryMeta(weeklyTopCategory.category)
+                          background: categoryMeta(monthlyTopCategory.category)
                             .tint,
                         }}>
-                        {categoryMeta(weeklyTopCategory.category).icon}
+                        {categoryMeta(monthlyTopCategory.category).icon}
                       </div>
                       <div className="min-w-0">
                         <p
                           className="text-[12.5px] font-medium"
                           style={{ color: C.ink }}>
-                          Pengeluaran terbesar 7 hari terakhir
+                          Pengeluaran terbesar bulan ini
                         </p>
                         <p
                           className="text-[12px]"
                           style={{ color: C.inkFaint }}>
-                          {categoryLabel(weeklyTopCategory.category)} ·{" "}
+                          {categoryLabel(monthlyTopCategory.category)} ·{" "}
                           <span
                             className="font-semibold"
                             style={{ color: C.roseDeep }}>
-                            {rupiah(weeklyTopCategory.amount)}
+                            {rupiah(monthlyTopCategory.amount)}
                           </span>
                         </p>
                       </div>
@@ -591,7 +583,7 @@ export default function HomePage({ user, onLogout }) {
 
                   {nearestGoal && (
                     <div
-                      className={weeklyTopCategory ? "pt-3 border-t" : ""}
+                      className={monthlyTopCategory ? "pt-3 border-t" : ""}
                       style={{ borderColor: "#463F5C10" }}>
                       <div className="flex items-center justify-between text-[12.5px] mb-1.5">
                         <span
