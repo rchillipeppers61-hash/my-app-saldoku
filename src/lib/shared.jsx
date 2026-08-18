@@ -92,6 +92,31 @@ export const roleLabel = (r) => ROLE_LABELS[r] || "Akun";
 // Ubah sesuai kebutuhan rumah tangga masing-masing.
 export const LOW_BALANCE_LIMIT = 100000;
 
+// Status saldo 3 tingkat, dipakai bareng di Homepage & Saldoku biar
+// gak ada dua logika beda yang bisa kesenjangan:
+// - saldo <= 0        -> "Saldo Sudah Habis" (paling darurat)
+// - 0 < saldo < limit  -> "Saldo Mulai Menipis" (peringatan)
+// - saldo >= limit     -> "Saldo Aman"
+export function balanceStatus(saldo, lowLimit = LOW_BALANCE_LIMIT) {
+  if (saldo <= 0) {
+    return {
+      key: "empty",
+      icon: "😥",
+      label: "Saldo Sudah Habis",
+      shortLabel: "Sudah Habis",
+    };
+  }
+  if (saldo < lowLimit) {
+    return {
+      key: "low",
+      icon: "⚠️",
+      label: "Saldo Mulai Menipis",
+      shortLabel: "Mulai Menipis",
+    };
+  }
+  return { key: "safe", icon: "🌱", label: "Saldo Aman", shortLabel: "Aman" };
+}
+
 export const rupiah = (n) => "Rp" + Math.round(n).toLocaleString("id-ID");
 
 export const capitalize = (s) =>

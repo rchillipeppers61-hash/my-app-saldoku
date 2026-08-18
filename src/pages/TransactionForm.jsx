@@ -76,29 +76,24 @@ export default function TransactionForm({
 
   return (
     <div
-      className="fixed inset-0 flex items-end sm:items-center justify-center z-50 px-0 sm:px-4"
+      className="fixed inset-0 flex items-center justify-center z-50 px-4"
       style={{ background: "rgba(70,63,92,0.45)", backdropFilter: "blur(2px)" }}
       onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full sm:max-w-sm lg:max-w-md rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-7 pb-8 sm:pb-7 relative"
+        className="w-full sm:max-w-sm lg:max-w-md max-h-[85vh] overflow-y-auto rounded-[32px] p-5 sm:p-7 relative"
         style={{
           background: "#FFFFFF",
           boxShadow: "0 30px 60px -20px rgba(70,63,92,0.35)",
         }}>
-        <div
-          className="w-10 h-1 rounded-full mx-auto mb-4 sm:hidden"
-          style={{ background: "#463F5C22" }}
-        />
-
         <button
           onClick={onClose}
-          className="hidden sm:flex absolute top-5 right-5 w-8 h-8 rounded-full items-center justify-center text-[14px] font-bold"
+          className="flex absolute top-5 right-5 w-8 h-8 rounded-full items-center justify-center text-[14px] font-bold"
           style={{ background: "#463F5C0f", color: C.inkSoft }}>
           ✕
         </button>
 
-        <div className="flex items-center gap-3 mb-5">
+        <div className="flex items-center gap-3 mb-5 pr-9">
           <div
             className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-[20px] sm:text-[22px] flex-shrink-0 transition-colors"
             style={{ background: isOut ? "#F4A6B72A" : "#8FD8BE2A" }}>

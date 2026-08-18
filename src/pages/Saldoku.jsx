@@ -23,7 +23,7 @@ export default function Saldoku({
   saldo,
   totalIn,
   totalOut,
-  isLow,
+  saldoStatus,
   avgOutPerDay,
   logs,
   onOpenForm,
@@ -249,7 +249,7 @@ export default function Saldoku({
       <div className="lg:grid lg:grid-cols-[minmax(0,340px)_1fr] lg:gap-6 lg:items-stretch">
         <div className="lg:sticky lg:top-8 flex flex-col gap-4 lg:self-start">
           <div
-            className="rounded-[32px] p-6 sm:p-8 relative overflow-hidden"
+            className="rounded-[28px] p-4 sm:p-5 relative overflow-hidden"
             style={{
               background: `linear-gradient(135deg, ${C.lavender}, ${C.skyDeep})`,
               boxShadow: "0 24px 48px -20px rgba(70,63,92,0.5)",
@@ -262,10 +262,10 @@ export default function Saldoku({
               className="absolute -bottom-14 -left-8 w-36 h-36 rounded-full"
               style={{ background: "rgba(255,255,255,0.08)" }}
             />
-            <div className="relative z-10">
+            <div className="relative z-10 flex flex-col items-center text-center">
               <p
-                className="text-[11px] sm:text-[12px] uppercase tracking-[0.2em] font-semibold"
-                style={{ color: "rgba(255,255,255,0.75)" }}>
+                className="text-[10.5px] sm:text-[11.5px] uppercase tracking-[0.2em] font-bold"
+                style={{ color: "#FFFFFF" }}>
                 Saldo Sekarang
               </p>
               <p
@@ -273,51 +273,59 @@ export default function Saldoku({
                   fontFamily: "'Fraunces', serif",
                   color: "#FFFFFF",
                 }}
-                className="mt-1 text-[34px] sm:text-[42px] lg:text-[40px] font-semibold leading-none">
+                className="mt-1 text-[26px] sm:text-[32px] lg:text-[30px] font-semibold leading-none">
                 {rupiah(saldo)}
               </p>
               <span
-                className="inline-flex items-center gap-1.5 mt-3 sm:mt-4 px-3 py-1.5 rounded-full text-[11px] sm:text-[12px] font-semibold"
+                className="inline-flex items-center gap-1.5 mt-2.5 sm:mt-3 px-3 py-1.5 rounded-full text-[10.5px] sm:text-[11.5px] font-bold"
                 style={{
-                  background: "rgba(255,255,255,0.18)",
+                  background:
+                    saldoStatus.key === "empty"
+                      ? "rgba(217,96,122,0.4)"
+                      : saldoStatus.key === "low"
+                        ? "rgba(246,196,83,0.35)"
+                        : "rgba(255,255,255,0.24)",
                   color: "#FFFFFF",
-                  border: "1px solid rgba(255,255,255,0.3)",
+                  border:
+                    saldoStatus.key === "empty"
+                      ? "1px solid rgba(217,96,122,0.65)"
+                      : saldoStatus.key === "low"
+                        ? "1px solid rgba(246,196,83,0.6)"
+                        : "1px solid rgba(255,255,255,0.45)",
                 }}>
-                {isLow
-                  ? "⚠️ Saldo mulai menipis"
-                  : "🌱 Saldo dalam kondisi aman"}
+                {saldoStatus.icon} {saldoStatus.label}
               </span>
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 mt-5 sm:mt-6">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 mt-4 sm:mt-4.5 w-full">
                 <div
-                  className="rounded-2xl p-3 sm:p-3.5"
+                  className="rounded-2xl p-2.5 sm:p-3 text-center"
                   style={{
-                    background: "rgba(255,255,255,0.14)",
-                    border: "1px solid rgba(255,255,255,0.22)",
+                    background: "rgba(255,255,255,0.18)",
+                    border: "1px solid rgba(255,255,255,0.32)",
                   }}>
                   <p
-                    className="text-[9px] sm:text-[10px] uppercase tracking-wide font-semibold"
-                    style={{ color: "rgba(255,255,255,0.75)" }}>
+                    className="text-[9px] sm:text-[10px] uppercase tracking-wide font-bold"
+                    style={{ color: "#FFFFFF" }}>
                     Masuk
                   </p>
                   <p
-                    className="text-[15px] sm:text-[17px] font-bold mt-0.5"
+                    className="text-[13.5px] sm:text-[15px] font-bold mt-0.5"
                     style={{ color: "#FFFFFF" }}>
                     {rupiah(totalIn)}
                   </p>
                 </div>
                 <div
-                  className="rounded-2xl p-3 sm:p-3.5"
+                  className="rounded-2xl p-2.5 sm:p-3 text-center"
                   style={{
-                    background: "rgba(255,255,255,0.14)",
-                    border: "1px solid rgba(255,255,255,0.22)",
+                    background: "rgba(255,255,255,0.18)",
+                    border: "1px solid rgba(255,255,255,0.32)",
                   }}>
                   <p
-                    className="text-[9px] sm:text-[10px] uppercase tracking-wide font-semibold"
-                    style={{ color: "rgba(255,255,255,0.75)" }}>
+                    className="text-[9px] sm:text-[10px] uppercase tracking-wide font-bold"
+                    style={{ color: "#FFFFFF" }}>
                     Keluar
                   </p>
                   <p
-                    className="text-[15px] sm:text-[17px] font-bold mt-0.5"
+                    className="text-[13.5px] sm:text-[15px] font-bold mt-0.5"
                     style={{ color: "#FFFFFF" }}>
                     {rupiah(totalOut)}
                   </p>

@@ -16,6 +16,7 @@ import {
   categoryLabel,
   categoryMeta,
   LOW_BALANCE_LIMIT,
+  balanceStatus,
 } from "../lib/shared";
 
 function getInitials(name) {
@@ -25,6 +26,29 @@ function getInitials(name) {
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase())
     .join("");
+}
+
+// Tile aksi cepat buat grid Quick Action di tab Home. Komponen kecil
+// & reusable, ukuran & style-nya senada sama pola icon-badge yang
+// udah dipakai di tempat lain (Card, list transaksi, dll).
+function QuickAction({ icon, label, bg, color, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center justify-center gap-1.5 py-3.5 sm:py-4 rounded-2xl transition-transform active:scale-[0.96]"
+      style={{ background: bg }}>
+      <span
+        className="text-[19px] sm:text-[20px] leading-none"
+        style={{ color }}>
+        {icon}
+      </span>
+      <span
+        className="text-[10.5px] sm:text-[11px] font-bold"
+        style={{ color }}>
+        {label}
+      </span>
+    </button>
+  );
 }
 
 // HomePage cuma jadi router/shell: pegang semua data & CRUD (transaksi,
@@ -294,7 +318,7 @@ export default function HomePage({ user, onLogout }) {
     .filter((t) => t.type === "out")
     .reduce((s, t) => s + Number(t.amount), 0);
   const saldo = totalIn - totalOut;
-  const isLow = saldo < LOW_BALANCE_LIMIT;
+  const saldoStatus = balanceStatus(saldo);
   const currentMonthKey = todayISO().slice(0, 7);
   const totalOutThisMonth = transactions
     .filter((t) => t.type === "out" && t.date.slice(0, 7) === currentMonthKey)
@@ -309,10 +333,52 @@ export default function HomePage({ user, onLogout }) {
   const availableToAllocate = saldo - totalSavedInGoals;
 
   const hasTransactionToday = transactions.some((t) => t.date === todayISO());
-  const showReminder = !hasTransactionToday && !reminderDismissed;
+  const showReminder = !loading && !hasTransactionToday && !reminderDismissed;
   const recentTransactions = useMemo(() => {
     return transactions.slice(-5).reverse();
   }, [transactions]);
+
+  // --- Turunan khusus tab "Home" biar tampilannya gak kembar sama tab
+  // Saldoku: sapaan sesuai jam, insight kategori terbesar minggu ini,
+  // dan goal nabung yang paling deket kecapai. Saldoku fokus ke buku
+  // besar/riwayat lengkap, Home fokus ke ringkasan + akses cepat. ---
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 11) return "Selamat pagi";
+    if (h < 15) return "Selamat siang";
+    if (h < 19) return "Selamat sore";
+    return "Selamat malam";
+  }, []);
+
+  const weeklyTopCategory = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 6);
+    const cutoffISO = cutoff.toISOString().slice(0, 10);
+    const byCategory = {};
+    transactions
+      .filter((t) => t.type === "out" && t.date >= cutoffISO)
+      .forEach((t) => {
+        byCategory[t.category] =
+          (byCategory[t.category] || 0) + Number(t.amount);
+      });
+    const entries = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
+    if (entries.length === 0) return null;
+    return { category: entries[0][0], amount: entries[0][1] };
+  }, [transactions]);
+
+  const nearestGoal = useMemo(() => {
+    const inProgress = goals.filter(
+      (g) => Number(g.saved_amount || 0) < g.target_amount,
+    );
+    if (inProgress.length === 0) return null;
+    return inProgress.reduce((best, g) => {
+      const pct = Number(g.saved_amount || 0) / g.target_amount;
+      const bestPct = best
+        ? Number(best.saved_amount || 0) / best.target_amount
+        : -1;
+      return pct > bestPct ? g : best;
+    }, null);
+  }, [goals]);
 
   return (
     <div
@@ -340,29 +406,37 @@ export default function HomePage({ user, onLogout }) {
 
       <div className="relative max-w-md sm:max-w-xl lg:max-w-5xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 pb-32 lg:pb-16">
         <div className="flex items-center justify-between mb-5 sm:mb-8">
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center font-semibold text-[14px] sm:text-[15px] flex-shrink-0"
-              style={{
-                background: `linear-gradient(135deg, ${C.lavender}, ${C.skyDeep})`,
-                color: "#FFFFFF",
-                fontFamily: "'Fraunces', serif",
-              }}>
-              {getInitials(displayName)}
+          {activeTab === "home" ? (
+            <p
+              style={{ fontFamily: "'Fraunces', serif", color: C.ink }}
+              className="text-[19px] sm:text-[22px] font-semibold">
+              My Wallet
+            </p>
+          ) : (
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center font-semibold text-[14px] sm:text-[15px] flex-shrink-0"
+                style={{
+                  background: `linear-gradient(135deg, ${C.lavender}, ${C.skyDeep})`,
+                  color: "#FFFFFF",
+                  fontFamily: "'Fraunces', serif",
+                }}>
+                {getInitials(displayName)}
+              </div>
+              <div className="min-w-0">
+                <p
+                  className="text-[11px] tracking-[0.2em] uppercase font-semibold"
+                  style={{ color: C.lavender }}>
+                  My Wallet
+                </p>
+                <h1
+                  style={{ fontFamily: "'Fraunces', serif" }}
+                  className="text-[19px] sm:text-[25px] font-semibold leading-tight truncate">
+                  Halo, {displayName} 👋
+                </h1>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p
-                className="text-[11px] tracking-[0.2em] uppercase font-semibold"
-                style={{ color: C.lavender }}>
-                My Wallet
-              </p>
-              <h1
-                style={{ fontFamily: "'Fraunces', serif" }}
-                className="text-[19px] sm:text-[25px] font-semibold leading-tight truncate">
-                Halo, {displayName} 👋
-              </h1>
-            </div>
-          </div>
+          )}
           {/* Navbar dipisah di Navbar.jsx — versi desktop di sini,
               versi mobile ada di bawah dekat footer. */}
           <DesktopNav
@@ -387,84 +461,205 @@ export default function HomePage({ user, onLogout }) {
             </p>
           ) : (
             <div className="max-w-xl lg:max-w-2xl mx-auto pb-20 lg:pb-0">
-              {showReminder && (
+              {/* Greeting Hero — sengaja beda gaya dari hero saldo di
+                  Saldoku.jsx: sapaan personal jadi headline, saldo
+                  ditaruh sebagai info sekunder di bawahnya (bukan
+                  angka gede jadi centerpiece kayak di Saldoku), warna
+                  gradient beda (mint→lavender vs lavender→sky). */}
+              <div
+                className="rounded-[28px] p-5 sm:p-6 relative overflow-hidden mb-4"
+                style={{
+                  background: `linear-gradient(135deg, ${C.mintDeep}, ${C.lavender})`,
+                  boxShadow: "0 24px 48px -20px rgba(70,63,92,0.45)",
+                }}>
                 <div
-                  className="flex items-center gap-3 rounded-2xl px-4 py-3.5 mb-4"
-                  style={{
-                    background: "#F6C4531F",
-                    border: "1px solid #F6C45340",
-                  }}>
-                  <span className="text-[22px] flex-shrink-0">👀</span>
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className="text-[13px] font-semibold"
-                      style={{ color: C.ink }}>
-                      Belum ada catatan hari ini
-                    </p>
-                    <p className="text-[11.5px]" style={{ color: C.inkFaint }}>
-                      Yuk catat dulu transaksinya biar rapi.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setEditingTx(null);
-                      setShowForm(true);
-                    }}
-                    className="flex-shrink-0 px-3.5 py-2 rounded-xl text-[12px] font-bold whitespace-nowrap"
+                  className="absolute -top-12 -right-8 w-36 h-36 rounded-full"
+                  style={{ background: "rgba(255,255,255,0.12)" }}
+                />
+                <div
+                  className="absolute -bottom-16 -left-10 w-40 h-40 rounded-full"
+                  style={{ background: "rgba(255,255,255,0.08)" }}
+                />
+                <div className="relative z-10">
+                  <p
+                    className="text-[10.5px] uppercase tracking-[0.2em] font-bold"
+                    style={{ color: "rgba(255,255,255,0.85)" }}>
+                    {greeting}
+                  </p>
+                  <h2
                     style={{
-                      background: "linear-gradient(135deg, #D89B2E, #F6C453)",
+                      fontFamily: "'Fraunces', serif",
                       color: "#FFFFFF",
-                    }}>
-                    Catat
-                  </button>
-                  <button
-                    onClick={() => setReminderDismissed(true)}
-                    aria-label="Tutup"
-                    className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
-                    style={{ background: "#463F5C14", color: C.inkFaint }}>
-                    ✕
-                  </button>
+                    }}
+                    className="text-[20px] sm:text-[23px] font-semibold mt-0.5 leading-tight">
+                    Halo, {displayName} 👋
+                  </h2>
+
+                  <div className="flex items-end justify-between gap-3 mt-4 flex-wrap">
+                    <div>
+                      <p
+                        className="text-[10px] uppercase tracking-wide font-semibold"
+                        style={{ color: "rgba(255,255,255,0.85)" }}>
+                        Saldo Sekarang
+                      </p>
+                      <p
+                        style={{
+                          fontFamily: "'Fraunces', serif",
+                          color: "#FFFFFF",
+                        }}
+                        className="text-[24px] sm:text-[27px] font-semibold leading-none mt-1">
+                        {rupiah(saldo)}
+                      </p>
+                    </div>
+                    <span
+                      className="px-3 py-1.5 rounded-full text-[10.5px] font-bold flex-shrink-0"
+                      style={{
+                        background:
+                          saldoStatus.key === "empty"
+                            ? "rgba(217,96,122,0.4)"
+                            : saldoStatus.key === "low"
+                              ? "rgba(246,196,83,0.35)"
+                              : "rgba(255,255,255,0.22)",
+                        color: "#FFFFFF",
+                        border:
+                          saldoStatus.key === "empty"
+                            ? "1px solid rgba(217,96,122,0.65)"
+                            : saldoStatus.key === "low"
+                              ? "1px solid rgba(246,196,83,0.6)"
+                              : "1px solid rgba(255,255,255,0.4)",
+                      }}>
+                      {saldoStatus.icon} {saldoStatus.shortLabel}
+                    </span>
+                  </div>
                 </div>
+              </div>
+
+              {/* Quick Action Tiles — Home jadi "launcher" ke fitur
+                  utama, beda konsep dari Saldoku yang isinya daftar
+                  transaksi & tools export. */}
+              <div className="grid grid-cols-4 gap-2.5 mb-4">
+                <QuickAction
+                  icon="✏️"
+                  label="Catat"
+                  bg="#3F9E7C1A"
+                  color={C.mintDeep}
+                  onClick={() => {
+                    setEditingTx(null);
+                    setShowForm(true);
+                  }}
+                />
+                <QuickAction
+                  icon="🎯"
+                  label="Target"
+                  bg="#8B72C41A"
+                  color={C.lavender}
+                  onClick={() => setActiveTab("nabung")}
+                />
+                <QuickAction
+                  icon="📒"
+                  label="Riwayat"
+                  bg="#3E7CB81A"
+                  color={C.skyDeep}
+                  onClick={() => setActiveTab("saldoku")}
+                />
+                <QuickAction
+                  icon="🔒"
+                  label="Akun"
+                  bg="#D9607A1A"
+                  color={C.roseDeep}
+                  onClick={() => setActiveTab("akun")}
+                />
+              </div>
+
+              {/* Insight card — 1 ringkasan kecil (kategori boros
+                  minggu ini / progress goal terdekat), gantiin posisi
+                  list transaksi panjang yang kembar sama Saldoku. */}
+              {(weeklyTopCategory || nearestGoal) && (
+                <Card className="mb-4" accent={C.amber}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3
+                      className="font-semibold text-[12px] sm:text-[13px] tracking-[0.08em] uppercase"
+                      style={{ color: C.amberDeep }}>
+                      Insight Buat Kamu
+                    </h3>
+                    <span className="text-[18px]">💡</span>
+                  </div>
+
+                  {weeklyTopCategory && (
+                    <div className="flex items-center gap-3 mb-3">
+                      <div
+                        className="w-10 h-10 rounded-2xl flex items-center justify-center text-[18px] flex-shrink-0"
+                        style={{
+                          background: categoryMeta(weeklyTopCategory.category)
+                            .tint,
+                        }}>
+                        {categoryMeta(weeklyTopCategory.category).icon}
+                      </div>
+                      <div className="min-w-0">
+                        <p
+                          className="text-[12.5px] font-medium"
+                          style={{ color: C.ink }}>
+                          Pengeluaran terbesar 7 hari terakhir
+                        </p>
+                        <p
+                          className="text-[12px]"
+                          style={{ color: C.inkFaint }}>
+                          {categoryLabel(weeklyTopCategory.category)} ·{" "}
+                          <span
+                            className="font-semibold"
+                            style={{ color: C.roseDeep }}>
+                            {rupiah(weeklyTopCategory.amount)}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {nearestGoal && (
+                    <div
+                      className={weeklyTopCategory ? "pt-3 border-t" : ""}
+                      style={{ borderColor: "#463F5C10" }}>
+                      <div className="flex items-center justify-between text-[12.5px] mb-1.5">
+                        <span
+                          className="font-medium truncate"
+                          style={{ color: C.ink }}>
+                          🎯 {nearestGoal.title}
+                        </span>
+                        <span style={{ color: C.inkFaint }}>
+                          {Math.round(
+                            (Number(nearestGoal.saved_amount || 0) /
+                              nearestGoal.target_amount) *
+                              100,
+                          )}
+                          %
+                        </span>
+                      </div>
+                      <div
+                        className="h-2 rounded-full overflow-hidden"
+                        style={{ background: "#463F5C14" }}>
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              Math.round(
+                                (Number(nearestGoal.saved_amount || 0) /
+                                  nearestGoal.target_amount) *
+                                  100,
+                              ),
+                            )}%`,
+                            background: `linear-gradient(135deg, ${C.lavender}, ${C.skyDeep})`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </Card>
               )}
 
-              <Card className="mb-4 flex items-center justify-between gap-3 flex-wrap">
-                <div>
-                  <p
-                    className="text-[10.5px] uppercase tracking-[0.1em] font-semibold"
-                    style={{ color: C.inkFaint }}>
-                    Saldo Sekarang
-                  </p>
-                  <p
-                    className="text-[24px] sm:text-[28px] font-semibold mt-0.5"
-                    style={{ fontFamily: "'Fraunces', serif", color: C.ink }}>
-                    {rupiah(saldo)}
-                  </p>
-                </div>
-                <span
-                  className="px-3 py-1.5 rounded-full text-[11px] font-semibold flex-shrink-0"
-                  style={{
-                    background: isLow ? "#F4A6B71F" : "#8FD8BE33",
-                    color: isLow ? C.roseDeep : C.mintDeep,
-                  }}>
-                  {isLow ? "⚠️ Mulai menipis" : "🌱 Aman"}
-                </span>
-              </Card>
-
-              <button
-                onClick={() => {
-                  setEditingTx(null);
-                  setShowForm(true);
-                }}
-                className="w-full py-3.5 sm:py-4 rounded-2xl font-bold text-[14px] sm:text-[15px] flex items-center justify-center gap-2 mb-4"
-                style={{
-                  background: `linear-gradient(135deg, ${C.mintDeep}, ${C.mint})`,
-                  color: "#FFFFFF",
-                  boxShadow: "0 14px 28px -14px rgba(63,158,124,0.6)",
-                }}>
-                <span className="text-[18px] leading-none">+</span> Catat
-                Transaksi
-              </button>
-
+              {/* Teaser transaksi — cuma 3 item ringkas biar gak
+                  dobel sama daftar lengkap di Saldoku, dengan link
+                  pintas ke sana. */}
               <Card>
                 <div className="flex items-center justify-between mb-2">
                   <h3
@@ -500,7 +695,7 @@ export default function HomePage({ user, onLogout }) {
                   </div>
                 ) : (
                   <div className="space-y-1 mt-1">
-                    {recentTransactions.map((t) => {
+                    {recentTransactions.slice(0, 3).map((t) => {
                       const meta =
                         t.type === "in"
                           ? { icon: "💰", bg: "#3F9E7C22" }
@@ -560,7 +755,7 @@ export default function HomePage({ user, onLogout }) {
             saldo={saldo}
             totalIn={totalIn}
             totalOut={totalOut}
-            isLow={isLow}
+            saldoStatus={saldoStatus}
             avgOutPerDay={avgOutPerDay}
             logs={logs}
             onOpenForm={() => {
@@ -662,6 +857,61 @@ export default function HomePage({ user, onLogout }) {
           user={user}
           onClose={() => setShowChangePassword(false)}
         />
+      )}
+
+      {/* Reminder "belum catat hari ini" — sekarang tampil sebagai
+          pop-up modal (bukan banner nempel di hero), biar lebih
+          nonjol & gak kelewat kayak banner biasa. */}
+      {showReminder && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 px-4"
+          style={{
+            background: "rgba(70,63,92,0.45)",
+            backdropFilter: "blur(2px)",
+          }}
+          onClick={() => setReminderDismissed(true)}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-[340px] rounded-[32px] p-7 text-center"
+            style={{
+              background: "#FFFFFF",
+              boxShadow: "0 30px 60px -20px rgba(70,63,92,0.35)",
+            }}>
+            <div
+              className="w-16 h-16 mx-auto rounded-full flex items-center justify-center text-[30px] mb-4"
+              style={{ background: "#F6C4531F" }}>
+              👀
+            </div>
+            <h3
+              style={{ fontFamily: "'Fraunces', serif", color: C.ink }}
+              className="text-[19px] sm:text-[20px] font-semibold mb-2 leading-snug">
+              Belum Ada Catatan Hari Ini
+            </h3>
+            <p className="text-[13px] mb-6" style={{ color: C.inkFaint }}>
+              Yuk catat pemasukan atau pengeluaranmu biar gak lupa.
+            </p>
+            <button
+              onClick={() => {
+                setReminderDismissed(true);
+                setEditingTx(null);
+                setShowForm(true);
+              }}
+              className="w-full py-3.5 rounded-2xl font-bold text-[14px] mb-2"
+              style={{
+                background: `linear-gradient(135deg, #D89B2E, ${C.amber})`,
+                color: "#FFFFFF",
+                boxShadow: "0 14px 28px -14px rgba(181,121,10,0.55)",
+              }}>
+              Siap, Dicatat Sekarang!
+            </button>
+            <button
+              onClick={() => setReminderDismissed(true)}
+              className="w-full py-2.5 text-[12.5px] font-semibold"
+              style={{ color: C.inkFaint }}>
+              Nanti Aja
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
