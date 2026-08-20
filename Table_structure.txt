@@ -1,0 +1,44 @@
+| table_structure                                                                     |
+| ----------------------------------------------------------------------------------- |
+| invite_codes : id,code,user_id,expires_at,used_at,created_at                        |
+| savings_goals : id,owner_id,title,target_amount,created_at,achieved_at,saved_amount |
+| transaction_logs : id,transaction_id,owner_id,action,old_data,new_data,changed_at   |
+| transactions : id,owner_id,type,amount,note,date,created_at,category,deleted_at     |
+| users : id,username,password,created_at,role,linked_child_id,nama_lengkap           |
+
+
+
+
+my-wallet/
+├── src/
+│   ├── main.jsx
+│   ├── index.css
+│   ├── App.jsx
+│   ├── supabaseClient.js
+│   │
+│   ├── shared/
+│   │   ├── theme.js
+│   │   ├── lib/
+│   │   │   └── format.js
+│   │   ├── ui/
+│   │   │   ├── Card.jsx
+│   │   │   └── PasswordField.jsx
+│   │   └── auth/
+│   │       ├── Login.jsx
+│   │       ├── SignUp.jsx
+│   │       └── ChangePasswordModal.jsx
+│   │
+│   ├── modules/
+│   │   └── wallet/
+│   │       ├── ChildDashboard.jsx
+│   │       ├── ParentDashboard.jsx
+│   │       ├── TransactionForm.jsx
+│   │       ├── SavingsGoalItem.jsx
+│   │       ├── ResetChildPasswordModal.jsx
+│   │       └── lib/
+│   │           └── walletConstants.js
+│   │
+│   └── layout/
+│       ├── AppShell.jsx
+│       ├── Sidebar.jsx
+│       └── BottomNav.jsx

@@ -346,7 +346,7 @@ export default function Saldoku({
       { key: "tanggal", width: 14 },
       { key: "tipe", width: 10 },
       { key: "kategori", width: 22 },
-      { key: "catatan", width: 30 },
+      { key: "catatan", width: 45 },
       { key: "jumlah", width: 16 },
     ];
 
@@ -395,6 +395,8 @@ export default function Saldoku({
       };
     });
 
+    const lastDataRowNumber = ws.lastRow.number;
+
     const totalInMonth = rows
       .filter((t) => t.type === "in")
       .reduce((s, t) => s + Number(t.amount), 0);
@@ -402,19 +404,59 @@ export default function Saldoku({
       .filter((t) => t.type === "out")
       .reduce((s, t) => s + Number(t.amount), 0);
 
+    // Total per kategori — sama kayak breakdown di kartu "Pengeluaran per
+    // Kategori", cuma di-scope ke bulan yang lagi di-export (bukan selalu
+    // bulan berjalan). Kategori "tabungan" juga dibuang dari breakdown ini
+    // dengan alasan yang sama seperti categoryRows di atas.
+    const categoryTotals = {};
+    rows
+      .filter((t) => t.type === "out" && t.category !== "tabungan")
+      .forEach((t) => {
+        categoryTotals[t.category] =
+          (categoryTotals[t.category] || 0) + Number(t.amount);
+      });
+
+    ws.addRow([]);
+    ws.addRow([]);
+
+    const categoryTitleRow = ws.addRow(["", "", "", "Sub Total per Kategori"]);
+    categoryTitleRow.font = {
+      bold: true,
+      size: 12,
+      color: { argb: "FF463F5C" },
+    };
+
+    Object.entries(categoryTotals)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([cat, amt]) => {
+        const row = ws.addRow(["", "", "", categoryLabel(cat), amt]);
+        row.font = { color: { argb: "FF463F5C" } };
+        row.getCell(5).numFmt = '"Rp"#,##0';
+      });
+
+    const subTotalCategory = Object.values(categoryTotals).reduce(
+      (s, v) => s + v,
+      0,
+    );
+    const subTotalRow = ws.addRow(["", "", "", "Sub Total", subTotalCategory]);
+    subTotalRow.font = { bold: true, color: { argb: "FF463F5C" } };
+    subTotalRow.getCell(5).numFmt = '"Rp"#,##0';
+
+    ws.addRow([]);
+
     const firstTotalRowNumber = ws.lastRow.number + 1;
     [
       ["Total Masuk", totalInMonth],
       ["Total Keluar", totalOutMonth],
       ["Selisih", totalInMonth - totalOutMonth],
     ].forEach(([label, value]) => {
-      const row = ws.addRow(["", "", label, "", value]);
+      const row = ws.addRow(["", "", "", label, value]);
       row.font = { bold: true };
       row.getCell(5).numFmt = '"Rp"#,##0';
     });
 
     const thin = { style: "thin", color: { argb: "FFCBC3E8" } };
-    for (let r = headerRow.number; r < firstTotalRowNumber; r++) {
+    for (let r = headerRow.number; r <= lastDataRowNumber; r++) {
       const row = ws.getRow(r);
       for (let c = 1; c <= 5; c++) {
         row.getCell(c).border = {
