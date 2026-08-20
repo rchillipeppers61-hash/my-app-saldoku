@@ -6,7 +6,7 @@ export const CATEGORIES = [
   {
     value: "makanan",
     label: "Makanan",
-    icon: "🍽️",
+    icon: "🍛",
     tint: "#8FD8BE2A",
     solid: "#3F9E7C",
   },
@@ -21,13 +21,6 @@ export const CATEGORIES = [
     value: "keluarga",
     label: "Keluarga",
     icon: "👨‍👩‍👧",
-    tint: "#F4A6B72A",
-    solid: "#D9607A",
-  },
-  {
-    value: "anak",
-    label: "Kebutuhan Anak",
-    icon: "🧸",
     tint: "#F4A6B72A",
     solid: "#D9607A",
   },
@@ -67,13 +60,6 @@ export const CATEGORIES = [
     solid: "#8B72C4",
   },
   {
-    value: "tabungan",
-    label: "Tabungan",
-    icon: "🐷",
-    tint: "#3E7CB82A",
-    solid: "#2E5F8F",
-  },
-  {
     value: "lainnya",
     label: "Lainnya",
     icon: "✨",
@@ -106,30 +92,34 @@ export const roleLabel = (r) => ROLE_LABELS[r] || "Akun";
 // Ubah sesuai kebutuhan rumah tangga masing-masing.
 export const LOW_BALANCE_LIMIT = 100000;
 
-// Status saldo 3 tingkat, dipakai bareng di Homepage & Saldoku biar
-// gak ada dua logika beda yang bisa kesenjangan:
-// - saldo <= 0        -> "Saldo Sudah Habis" (paling darurat)
-// - 0 < saldo < limit  -> "Saldo Mulai Menipis" (peringatan)
-// - saldo >= limit     -> "Saldo Aman"
-export function balanceStatus(saldo, lowLimit = LOW_BALANCE_LIMIT) {
+// Status saldo dipakai bareng di hero card Home & Saldoku buat nentuin
+// warna badge + pesannya. 3 level: habis (<=0), menipis (< limit),
+// aman (sisanya). shortLabel dipakai di Home (badge lebih kecil),
+// label versi lebih deskriptif dipakai di Saldoku.
+export const balanceStatus = (saldo) => {
   if (saldo <= 0) {
     return {
       key: "empty",
-      icon: "😥",
-      label: "Saldo Sudah Habis",
-      shortLabel: "Sudah Habis",
+      icon: "⚠️",
+      label: "Saldo Habis",
+      shortLabel: "Habis",
     };
   }
-  if (saldo < lowLimit) {
+  if (saldo < LOW_BALANCE_LIMIT) {
     return {
       key: "low",
-      icon: "⚠️",
-      label: "Saldo Mulai Menipis",
-      shortLabel: "Mulai Menipis",
+      icon: "🔔",
+      label: "Saldo Menipis",
+      shortLabel: "Menipis",
     };
   }
-  return { key: "safe", icon: "🌱", label: "Saldo Aman", shortLabel: "Aman" };
-}
+  return {
+    key: "aman",
+    icon: "✅",
+    label: "Saldo Aman",
+    shortLabel: "Aman",
+  };
+};
 
 export const rupiah = (n) => "Rp" + Math.round(n).toLocaleString("id-ID");
 

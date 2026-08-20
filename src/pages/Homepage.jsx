@@ -28,29 +28,6 @@ function getInitials(name) {
     .join("");
 }
 
-// Tile aksi cepat buat grid Quick Action di tab Home. Komponen kecil
-// & reusable, ukuran & style-nya senada sama pola icon-badge yang
-// udah dipakai di tempat lain (Card, list transaksi, dll).
-function QuickAction({ icon, label, bg, color, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex flex-col items-center justify-center gap-1.5 py-3.5 sm:py-4 rounded-2xl transition-transform active:scale-[0.96]"
-      style={{ background: bg }}>
-      <span
-        className="text-[19px] sm:text-[20px] leading-none"
-        style={{ color }}>
-        {icon}
-      </span>
-      <span
-        className="text-[10.5px] sm:text-[11px] font-bold"
-        style={{ color }}>
-        {label}
-      </span>
-    </button>
-  );
-}
-
 // HomePage cuma jadi router/shell: pegang semua data & CRUD (transaksi,
 // goals, logs), layout global (header, nav, reminder, ganti password),
 // dan nentuin halaman/tab mana yang tampil. Konten tiap tab dipisah ke
@@ -532,43 +509,6 @@ export default function HomePage({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Quick Action Tiles — Home jadi "launcher" ke fitur
-                  utama, beda konsep dari Saldoku yang isinya daftar
-                  transaksi & tools export. */}
-              <div className="grid grid-cols-4 gap-2.5 mb-4">
-                <QuickAction
-                  icon="✏️"
-                  label="Catat"
-                  bg="#3F9E7C1A"
-                  color={C.mintDeep}
-                  onClick={() => {
-                    setEditingTx(null);
-                    setShowForm(true);
-                  }}
-                />
-                <QuickAction
-                  icon="🎯"
-                  label="Target"
-                  bg="#8B72C41A"
-                  color={C.lavender}
-                  onClick={() => setActiveTab("nabung")}
-                />
-                <QuickAction
-                  icon="📒"
-                  label="Riwayat"
-                  bg="#3E7CB81A"
-                  color={C.skyDeep}
-                  onClick={() => setActiveTab("saldoku")}
-                />
-                <QuickAction
-                  icon="🔒"
-                  label="Akun"
-                  bg="#D9607A1A"
-                  color={C.roseDeep}
-                  onClick={() => setActiveTab("akun")}
-                />
-              </div>
-
               {/* Insight card — 1 ringkasan kecil (kategori boros
                   bulan ini / progress goal terdekat), gantiin posisi
                   list transaksi panjang yang kembar sama Saldoku. */}
@@ -597,7 +537,7 @@ export default function HomePage({ user, onLogout }) {
                         <p
                           className="text-[12.5px] font-medium"
                           style={{ color: C.ink }}>
-                          Pengeluaran terbesar bulan ini
+                          Pengeluaran Terbesar Bulan Ini
                         </p>
                         <p
                           className="text-[12px]"
@@ -739,6 +679,26 @@ export default function HomePage({ user, onLogout }) {
                   </div>
                 )}
               </Card>
+
+              {/* Full-width button, bukan card tunggal di grid — pola ini
+                  nyontek tombol "+ Catat Transaksi" yang udah ada di
+                  sidebar desktop Saldoku, jadi konsisten & gak kelihatan
+                  aneh/kepotong di layar HP kayak kalau cuma 1 tile doang
+                  yang tersisa di grid 4 kolom. */}
+              <button
+                onClick={() => {
+                  setEditingTx(null);
+                  setShowForm(true);
+                }}
+                className="w-full mt-4 py-3.5 sm:py-4 rounded-2xl font-bold text-[14px] sm:text-[15px] flex items-center justify-center gap-2"
+                style={{
+                  background: `linear-gradient(135deg, ${C.mintDeep}, ${C.mint})`,
+                  color: "#FFFFFF",
+                  boxShadow: "0 14px 28px -14px rgba(63,158,124,0.6)",
+                }}>
+                <span className="text-[18px] leading-none">+</span> Catat
+                Transaksi
+              </button>
             </div>
           ))}
 
